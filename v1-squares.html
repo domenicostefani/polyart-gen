@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Art Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .canvas-container {
+            position: relative;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            background: #000;
+        }
+        
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 250px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ddd;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: #444;
+            border-radius: 2px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .value-display {
+            min-width: 30px;
+            text-align: right;
+            font-size: 12px;
+            color: #bbb;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .color-preset {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .color-btn:hover {
+            border-color: #666;
+        }
+        
+        .color-btn.active {
+            border-color: #4CAF50;
+        }
+        
+        h2 {
+            margin-top: 0;
+            color: #fff;
+            font-size: 18px;
+        }
+        
+        h3 {
+            margin: 15px 0 10px 0;
+            color: #ccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="artCanvas" width="600" height="600"></canvas>
+        </div>
+        
+        <div class="controls">
+            <h2>Polygon Art Generator</h2>
+            
+            <div class="control-group">
+                <label>Subdivision Depth</label>
+                <div class="slider-container">
+                    <input type="range" id="subdivisionDepth" min="2" max="6" value="4">
+                    <span class="value-display" id="subdivisionDepthValue">4</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Line Variation</label>
+                <div class="slider-container">
+                    <input type="range" id="lineVariation" min="0" max="100" value="40">
+                    <span class="value-display" id="lineVariationValue">40</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Split Randomness</label>
+                <div class="slider-container">
+                    <input type="range" id="splitRandomness" min="10" max="90" value="50">
+                    <span class="value-display" id="splitRandomnessValue">50</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Angle Variation</label>
+                <div class="slider-container">
+                    <input type="range" id="angleVariation" min="0" max="45" value="15">
+                    <span class="value-display" id="angleVariationValue">15</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Color Saturation</label>
+                <div class="slider-container">
+                    <input type="range" id="saturation" min="30" max="100" value="70">
+                    <span class="value-display" id="saturationValue">70</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Color Brightness</label>
+                <div class="slider-container">
+                    <input type="range" id="brightness" min="30" max="90" value="60">
+                    <span class="value-display" id="brightnessValue">60</span>
+                </div>
+            </div>
+            
+            <h3>Color Schemes</h3>
+            <div class="color-preset">
+                <div class="color-btn active" data-scheme="vibrant" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);"></div>
+                <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);"></div>
+                <div class="color-btn" data-scheme="warm" style="background: linear-gradient(45deg, #ffeaa7, #fab1a0, #e17055, #fd79a8);"></div>
+                <div class="color-btn" data-scheme="nature" style="background: linear-gradient(45deg, #00b894, #00cec9, #6c5ce7, #a29bfe);"></div>
+                <div class="color-btn" data-scheme="sunset" style="background: linear-gradient(45deg, #fd79a8, #fdcb6e, #e84393, #6c5ce7);"></div>
+            </div>
+            
+            <div class="control-group" style="margin-top: 20px;">
+                <button onclick="generateNew()">Generate New</button>
+                <button onclick="saveSVG()">Save as SVG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('artCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentScheme = 'vibrant';
+        let allPolygons = [];
+        
+        const colorSchemes = {
+            vibrant: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'],
+            cool: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4834d4', '#686de0', '#30336b'],
+            warm: ['#ffeaa7', '#fab1a0', '#e17055', '#fd79a8', '#fdcb6e', '#e84393', '#fd79a8'],
+            nature: ['#00b894', '#00cec9', '#6c5ce7', '#a29bfe', '#55a3ff', '#26de81', '#2bcbba'],
+            sunset: ['#fd79a8', '#fdcb6e', '#e84393', '#6c5ce7', '#74b9ff', '#0984e3', '#a29bfe']
+        };
+        
+        function getRandomColor() {
+            const scheme = colorSchemes[currentScheme];
+            return scheme[Math.floor(Math.random() * scheme.length)];
+        }
+        
+        // Create a wavy/curved line between two points
+        function createVariedLine(p1, p2, variation) {
+            if (variation === 0) return [p1, p2];
+            
+            const points = [p1];
+            const segments = 3 + Math.floor(Math.random() * 3); // 3-5 segments
+            
+            for (let i = 1; i < segments; i++) {
+                const t = i / segments;
+                const baseX = p1.x + (p2.x - p1.x) * t;
+                const baseY = p1.y + (p2.y - p1.y) * t;
+                
+                // Add perpendicular variation
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const perpX = -dy / length;
+                const perpY = dx / length;
+                
+                const maxVariation = length * (variation / 100) * 0.2;
+                const offset = (Math.random() - 0.5) * maxVariation;
+                
+                points.push({
+                    x: baseX + perpX * offset,
+                    y: baseY + perpY * offset
+                });
+            }
+            
+            points.push(p2);
+            return points;
+        }
+        
+        // Recursive space subdivision
+        function subdivideSpace(bounds, depth, maxDepth) {
+            if (depth >= maxDepth) {
+                // Create final polygon
+                const color = getRandomColor();
+                allPolygons.push({
+                    points: [
+                        { x: bounds.left, y: bounds.top },
+                        { x: bounds.right, y: bounds.top },
+                        { x: bounds.right, y: bounds.bottom },
+                        { x: bounds.left, y: bounds.bottom }
+                    ],
+                    color: color
+                });
+                return;
+            }
+            
+            const width = bounds.right - bounds.left;
+            const height = bounds.bottom - bounds.top;
+            const splitRandomness = parseInt(document.getElementById('splitRandomness').value) / 100;
+            const angleVariation = parseInt(document.getElementById('angleVariation').value);
+
+            let curVectorInstructions = [];
+            
+            // Decide whether to split horizontally or vertically
+            const splitVertically = Math.random() > 0.5;
+            
+            if (splitVertically && width > 50) {
+                // Vertical split
+                const minSplit = bounds.left + width * 0.2;
+                const maxSplit = bounds.right - width * 0.2;
+                const splitX = minSplit + (maxSplit - minSplit) * (0.3 + splitRandomness * 0.4);
+                
+                // Create split line with variation
+                let topPoint = { x: splitX, y: bounds.top };
+                let bottomPoint = { x: splitX, y: bounds.bottom };
+                
+                // Add angle variation
+                if (angleVariation > 0) {
+                    const angle = (Math.random() - 0.5) * (angleVariation * Math.PI / 180);
+                    const centerY = bounds.top + height / 2;
+                    const halfHeight = height / 2;
+                    
+                    topPoint.x = splitX + Math.tan(angle) * halfHeight;
+                    bottomPoint.x = splitX - Math.tan(angle) * halfHeight;
+                }
+                
+                // Ensure points stay within bounds
+                topPoint.x = Math.max(bounds.left, Math.min(bounds.right, topPoint.x));
+                bottomPoint.x = Math.max(bounds.left, Math.min(bounds.right, bottomPoint.x));
+                
+                // Create left and right bounds
+                const leftBounds = {
+                    left: bounds.left,
+                    right: Math.max(topPoint.x, bottomPoint.x),
+                    top: bounds.top,
+                    bottom: bounds.bottom,
+                    splitLine: { top: topPoint, bottom: bottomPoint }
+                };
+                
+                const rightBounds = {
+                    left: Math.min(topPoint.x, bottomPoint.x),
+                    right: bounds.right,
+                    top: bounds.top,
+                    bottom: bounds.bottom,
+                    splitLine: { top: topPoint, bottom: bottomPoint }
+                };
+                
+                subdivideSpace(leftBounds, depth + 1, maxDepth);
+                subdivideSpace(rightBounds, depth + 1, maxDepth);
+                
+            } else if (!splitVertically && height > 50) {
+                // Horizontal split
+                const minSplit = bounds.top + height * 0.2;
+                const maxSplit = bounds.bottom - height * 0.2;
+                const splitY = minSplit + (maxSplit - minSplit) * (0.3 + splitRandomness * 0.4);
+                
+                // Create split line with variation
+                let leftPoint = { x: bounds.left, y: splitY };
+                let rightPoint = { x: bounds.right, y: splitY };
+                
+                // Add angle variation
+                if (angleVariation > 0) {
+                    const angle = (Math.random() - 0.5) * (angleVariation * Math.PI / 180);
+                    const centerX = bounds.left + width / 2;
+                    const halfWidth = width / 2;
+                    
+                    leftPoint.y = splitY - Math.tan(angle) * halfWidth;
+                    rightPoint.y = splitY + Math.tan(angle) * halfWidth;
+                }
+                
+                // Ensure points stay within bounds
+                leftPoint.y = Math.max(bounds.top, Math.min(bounds.bottom, leftPoint.y));
+                rightPoint.y = Math.max(bounds.top, Math.min(bounds.bottom, rightPoint.y));
+                
+                // Create top and bottom bounds
+                const topBounds = {
+                    left: bounds.left,
+                    right: bounds.right,
+                    top: bounds.top,
+                    bottom: Math.max(leftPoint.y, rightPoint.y),
+                    splitLine: { left: leftPoint, right: rightPoint }
+                };
+                
+                const bottomBounds = {
+                    left: bounds.left,
+                    right: bounds.right,
+                    top: Math.min(leftPoint.y, rightPoint.y),
+                    bottom: bounds.bottom,
+                    splitLine: { left: leftPoint, right: rightPoint }
+                };
+                
+                subdivideSpace(topBounds, depth + 1, maxDepth);
+                subdivideSpace(bottomBounds, depth + 1, maxDepth);
+                
+            } else {
+                // Create final polygon when can't split further
+                const color = getRandomColor();
+                allPolygons.push({
+                    points: [
+                        { x: bounds.left, y: bounds.top },
+                        { x: bounds.right, y: bounds.top },
+                        { x: bounds.right, y: bounds.bottom },
+                        { x: bounds.left, y: bounds.bottom }
+                    ],
+                    color: color
+                });
+            }
+        }
+        
+        function drawPolygon(points, color) {
+            if (points.length < 3) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+        
+        function generatePolygons() {
+            curVectorInstructions = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            allPolygons = [];
+            
+            const maxDepth = parseInt(document.getElementById('subdivisionDepth').value);
+            
+            // Start with the entire canvas
+            const initialBounds = {
+                left: 0,
+                right: canvas.width,
+                top: 0,
+                bottom: canvas.height
+            };
+            
+            subdivideSpace(initialBounds, 0, maxDepth);
+            
+            // Draw all polygons
+            allPolygons.forEach(polygon => {
+                drawPolygon(polygon.points, polygon.color);
+            });
+            curVectorInstructions = allPolygons
+        }
+
+
+        function generateRandomName() {
+            const adjectives = [
+                'brave', 'clever', 'swift', 'mighty', 'gentle', 'fierce', 'wise', 'bold',
+                'cheerful', 'curious', 'daring', 'elegant', 'graceful', 'humble', 'kind',
+                'loyal', 'noble', 'patient', 'quiet', 'resilient', 'serene', 'thoughtful',
+                'vibrant', 'witty', 'zealous', 'amazing', 'brilliant', 'creative', 'dynamic',
+                'energetic', 'fantastic', 'glorious', 'heroic', 'inspiring', 'joyful'
+            ];
+
+            const nouns = [
+                'Thunder', 'Lightning', 'Storm', 'Blaze', 'Frost', 'Shadow', 'Crystal', 'Ember',
+                'Vortex', 'Comet', 'Nebula', 'Eclipse', 'Aurora', 'Tempest', 'Zephyr', 'Titan',
+                'Prism', 'Vertex', 'Matrix', 'Zenith', 'Catalyst', 'Phantom', 'Spectrum', 'Viper',
+                'Falcon', 'Raven', 'Wolf', 'Dragon', 'Griffin', 'Phoenix', 'Tiger', 'Shark',
+                'Summit', 'Canyon', 'Glacier', 'Volcano', 'Ocean', 'Forest', 'Desert', 'Mountain'
+            ];
+
+            const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+            
+            res = `${randomAdjective}-${randomNoun}`;
+            // All lower case
+            res = res.toLowerCase();
+            // Replace spaces with dashes
+            res = res.replace(/\s+/g, '-');
+            return res;
+        }
+
+        function saveSVG() {
+            const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">` +
+                allPolygons.map(polygon => {
+                    const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
+                    return `<polygon points="${points}" fill="${polygon.color}" />`;
+                }).join('') +
+                `</svg>`;
+            
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // a.download = 'polygon_art.svg';
+
+            a.download = generateRandomName() + '.svg';
+
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function generateNew() {
+            generatePolygons();
+        }
+        
+        // Event listeners for sliders
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            const valueDisplay = document.getElementById(slider.id + 'Value');
+            
+            slider.addEventListener('input', function() {
+                valueDisplay.textContent = this.value;
+                generatePolygons();
+            });
+        });
+        
+        // Color scheme selection
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentScheme = this.dataset.scheme;
+                generatePolygons();
+            });
+        });
+        
+        // Initial generation
+        generatePolygons();
+    </script>
+</body>
+</html>
