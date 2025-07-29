@@ -8,13 +8,30 @@
 </head>
 <body>
     <div class="container">
-        <div class="hor-flexbox">
+        <div class="horver-flexbox">
+            <a href="index.html"><button style="background-color: #e84393;">Back to mainpage</button></a>
+        </div>
+        <div class="horver-flexbox">
             <div class="canvas-container">
                 <canvas id="artCanvas" width="600" height="600"></canvas>
             </div>
             
             <div class="controls">
                 <h2>Polygon Art Generator V1</h2>
+
+                <div class="control-group" style="margin-top: 20px;">
+                    <button onclick="generateNew()" style="background-color: #667eea;">Generate New</button>
+                    <button onclick="saveSVG()" style="background-color: #00b894;">Save as SVG</button>
+                </div>
+
+                <h3>Color Schemes</h3>
+                <div class="color-preset">
+                    <div class="color-btn active" data-scheme="vibrant" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);"></div>
+                    <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);"></div>
+                    <div class="color-btn" data-scheme="warm" style="background: linear-gradient(45deg, #ffeaa7, #fab1a0, #e17055, #fd79a8);"></div>
+                    <div class="color-btn" data-scheme="nature" style="background: linear-gradient(45deg, #00b894, #00cec9, #6c5ce7, #a29bfe);"></div>
+                    <div class="color-btn" data-scheme="sunset" style="background: linear-gradient(45deg, #fd79a8, #fdcb6e, #e84393, #6c5ce7);"></div>
+                </div>
             
                 <div class="control-group">
                     <label>Subdivision Depth</label>
@@ -64,19 +81,6 @@
                     </div>
                 </div>
             
-                <h3>Color Schemes</h3>
-                <div class="color-preset">
-                    <div class="color-btn active" data-scheme="vibrant" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);"></div>
-                    <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);"></div>
-                    <div class="color-btn" data-scheme="warm" style="background: linear-gradient(45deg, #ffeaa7, #fab1a0, #e17055, #fd79a8);"></div>
-                    <div class="color-btn" data-scheme="nature" style="background: linear-gradient(45deg, #00b894, #00cec9, #6c5ce7, #a29bfe);"></div>
-                    <div class="color-btn" data-scheme="sunset" style="background: linear-gradient(45deg, #fd79a8, #fdcb6e, #e84393, #6c5ce7);"></div>
-                </div>
-            
-                <div class="control-group" style="margin-top: 20px;">
-                    <button onclick="generateNew()">Generate New</button>
-                    <button onclick="saveSVG()">Save as SVG</button>
-                </div>
             </div>
         </div>
     </div>
