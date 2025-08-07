@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delaunay Polygon Art Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .horver-flexbox {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .canvas-container {
+            background: #000;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        #artCanvas {
+            border: 2px solid #333;
+            border-radius: 4px;
+            background: #000;
+        }
+        
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 300px;
+        }
+        
+        .controls h2 {
+            margin-top: 0;
+            color: #fff;
+        }
+        
+        .controls h3 {
+            margin: 20px 0 10px 0;
+            color: #ccc;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-size: 14px;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: #555;
+            outline: none;
+            border-radius: 2px;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+        
+        .value-display {
+            min-width: 30px;
+            text-align: center;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            opacity: 0.8;
+        }
+        
+        .color-preset {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.2s;
+        }
+        
+        .color-btn:hover {
+            border-color: #fff;
+        }
+        
+        .color-btn.active {
+            border-color: #667eea;
+        }
+    </style>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="horver-flexbox">
+            <a href="index.html"><button style="background-color: #e84393;">Back to mainpage</button></a>
+        </div>
+        <div class="horver-flexbox">
+            <div class="canvas-container">
+                <canvas id="artCanvas" width="600" height="600"></canvas>
+            </div>
+            
+            <div class="controls">
+                <h2>Delaunay Polygon Art Generator</h2>
+
+                <div class="control-group" style="margin-top: 20px;">
+                    <button onclick="generateNew()" style="background-color: #667eea;">Generate New</button>
+                    <button onclick="saveSVG()" style="background-color: #00b894;">Save as SVG</button>
+                </div>
+
+                <h3>Color Schemes</h3>
+                <div class="color-preset">
+                    <div class="color-btn active" data-scheme="vibrant" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);"></div>
+                    <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);"></div>
+                    <div class="color-btn" data-scheme="warm" style="background: linear-gradient(45deg, #ffeaa7, #fab1a0, #e17055, #fd79a8);"></div>
+                    <div class="color-btn" data-scheme="nature" style="background: linear-gradient(45deg, #00b894, #00cec9, #6c5ce7, #a29bfe);"></div>
+                    <div class="color-btn" data-scheme="sunset" style="background: linear-gradient(45deg, #fd79a8, #fdcb6e, #e84393, #6c5ce7);"></div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Grid Size (NX)</label>
+                    <div class="slider-container">
+                        <input type="range" id="gridSize" min="5" max="20" value="12">
+                        <span class="value-display" id="gridSizeValue">12</span>
+                    </div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Points Used (%)</label>
+                    <div class="slider-container">
+                        <input type="range" id="pointDensity" min="20" max="80" value="50">
+                        <span class="value-display" id="pointDensityValue">50</span>
+                    </div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Connections per Point</label>
+                    <div class="slider-container">
+                        <input type="range" id="connections" min="3" max="9" value="4">
+                        <span class="value-display" id="connectionsValue">4</span>
+                    </div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Point Jitter</label>
+                    <div class="slider-container">
+                        <input type="range" id="jitter" min="0" max="50" value="20">
+                        <span class="value-display" id="jitterValue">20</span>
+                    </div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Margins</label>
+                    <div class="slider-container">
+                        <input type="range" id="margins" min="0" max="20" value="5">
+                        <span><span class="value-display" id="marginsValue">5</span>%</span>
+                    </div>
+                </div>
+                
+
+                
+                <div class="control-group">
+                    <label>Erosion Probability</label>
+
+                    <div class="slider-container">
+                        <input type="range" id="erosionprob" min="0" max="100" value="5">
+                        <span><span class="value-display" id="erosionprobValue">5</span>%</span>
+                        <button onclick="erodeBorder()" style="background-color: #e17055;">Erode Border</button>
+                    </div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Color Saturation</label>
+                    <div class="slider-container">
+                        <input type="range" id="saturation" min="0" max="100" value="70">
+                        <span class="value-display" id="saturationValue">70</span>
+                    </div>
+                </div>
+            
+                <div class="control-group">
+                    <label>Color Brightness</label>
+                    <div class="slider-container">
+                        <input type="range" id="brightness" min="0" max="100" value="60">
+                        <span class="value-display" id="brightnessValue">60</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('artCanvas');
+        const ctx = canvas.getContext('2d');
+        // let currentScheme = 'vibrant';
+        let currentScheme = sessionStorage.getItem('colorScheme') || 'vibrant';
+        let allPolygons = [];
+        
+        const colorSchemes = {
+            vibrant: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'],
+            cool: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4834d4', '#686de0', '#30336b'],
+            warm: ['#ffeaa7', '#fab1a0', '#e17055', '#fd79a8', '#fdcb6e', '#e84393', '#fd79a8'],
+            nature: ['#00b894', '#00cec9', '#6c5ce7', '#a29bfe', '#55a3ff', '#26de81', '#2bcbba'],
+            sunset: ['#fd79a8', '#fdcb6e', '#e84393', '#6c5ce7', '#74b9ff', '#0984e3', '#a29bfe']
+        };
+        
+        function getRandomColor() {
+            const scheme = colorSchemes[currentScheme];
+            return scheme[Math.floor(Math.random() * scheme.length)];
+        }
+        
+        function distance(p1, p2) {
+            return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+        }
+        
+        function findClosestPoints(point, points, count) {
+            return points
+                .filter(p => p !== point)
+                .sort((a, b) => distance(point, a) - distance(point, b))
+                .slice(0, count);
+        }
+        
+        function convexHull(points) {
+            if (points.length < 3) return points;
+            
+            // Find the bottom-most point (or left most in case of tie)
+            let start = points.reduce((min, p) => 
+                p.y < min.y || (p.y === min.y && p.x < min.x) ? p : min
+            );
+            
+            let hull = [];
+            let current = start;
+            
+            do {
+                hull.push(current);
+                let next = points[0];
+                
+                for (let p of points) {
+                    if (p === current) continue;
+                    
+                    let cross = (next.x - current.x) * (p.y - current.y) - (next.y - current.y) * (p.x - current.x);
+                    if (next === current || cross > 0 || (cross === 0 && distance(current, p) > distance(current, next))) {
+                        next = p;
+                    }
+                }
+                
+                current = next;
+            } while (current !== start);
+            
+            return hull;
+        }
+        
+        function triangulate(points, edges) {
+            // Simple polygon detection based on edge connectivity
+            let polygons = [];
+            let visited = new Set();
+            
+            // Create adjacency list
+            let adjacency = new Map();
+            points.forEach(p => adjacency.set(p, []));
+            
+            edges.forEach(edge => {
+                adjacency.get(edge[0]).push(edge[1]);
+                adjacency.get(edge[1]).push(edge[0]);
+            });
+            
+            // Find triangles and quads
+            for (let point of points) {
+                let neighbors = adjacency.get(point);
+                
+                for (let i = 0; i < neighbors.length; i++) {
+                    for (let j = i + 1; j < neighbors.length; j++) {
+                        let n1 = neighbors[i];
+                        let n2 = neighbors[j];
+                        
+                        // Check if n1 and n2 are connected (forms triangle)
+                        if (adjacency.get(n1).includes(n2)) {
+                            let triangle = [point, n1, n2].sort((a, b) => a.x - b.x || a.y - b.y);
+                            let key = triangle.map(p => `${p.x},${p.y}`).join('|');
+                            
+                            if (!visited.has(key)) {
+                                visited.add(key);
+                                polygons.push(triangle);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return polygons;
+        }
+        
+        function hexToHSL(hex) {
+            let r = parseInt(hex.slice(1, 3), 16) / 255;
+            let g = parseInt(hex.slice(3, 5), 16) / 255;
+            let b = parseInt(hex.slice(5, 7), 16) / 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+
+        function hslToHex(h, s, l) {
+            s /= 100;
+            l /= 100;
+
+            const a = s * Math.min(l, 1 - l);
+            const f = (n) => {
+                const k = (n + h / 30) % 12;
+                const color = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+                return Math.round(color * 255).toString(16).padStart(2, '0');
+            };
+
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        function applyColorAdjustments(color, brightness, saturation) {
+            if (!color) return "#000000";
+            
+            try {
+                let hsl = hexToHSL(color);
+                hsl.s = (saturation < 0.5) ? hsl.s * (saturation * 2) : hsl.s + (100 - hsl.s) * ((saturation - 0.5) * 2);
+                hsl.l = (brightness < 0.5) ? hsl.l * (brightness * 2) : hsl.l + (100 - hsl.l) * ((brightness - 0.5) * 2);
+                hsl.s = Math.max(0, Math.min(100, hsl.s));
+                hsl.l = Math.max(0, Math.min(100, hsl.l));
+                return hslToHex(hsl.h, hsl.s, hsl.l);
+            } catch (e) {
+                return color;
+            }
+        }
+        
+        function drawPolygon(points, fillColor) {
+            if (points.length < 3) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            
+            ctx.closePath();
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSliderValues();
+        });
+
+        function loadSliderValues() {
+            const gridSize = sessionStorage.getItem('gridSize'); // || document.getElementById('gridSize').value;
+            console.log('Loaded gridSize from session storage:', gridSize);
+            const pointDensity = sessionStorage.getItem('pointDensity'); // || document.getElementById('pointDensity').value;
+            const connections = sessionStorage.getItem('connections'); // || document.getElementById('connections').value;
+            const jitter = sessionStorage.getItem('jitter'); // || document.getElementById('jitter').value;
+            const margins = sessionStorage.getItem('margins'); // || document.getElementById('margins').value;
+            const erosionprob = sessionStorage.getItem('erosionprob'); // || document.getElementById('erosionprob').value;
+            const brightness = sessionStorage.getItem('brightness'); // || document.getElementById('brightness').value;
+            const saturation = sessionStorage.getItem('saturation'); // || document.getElementById('saturation').value;
+
+            console.log('Loaded values from session storage:', {
+                gridSize, pointDensity, connections, jitter, margins, erosionprob, brightness, saturation
+            });
+
+            document.getElementById('gridSize').value = gridSize;
+            document.getElementById('gridSizeValue').textContent = gridSize;
+            document.getElementById('pointDensity').value = pointDensity;
+            document.getElementById('pointDensityValue').textContent = pointDensity;
+            document.getElementById('connections').value = connections;
+            document.getElementById('connectionsValue').textContent = connections;
+            document.getElementById('jitter').value = jitter;
+            document.getElementById('jitterValue').textContent = jitter;
+            document.getElementById('margins').value = margins;
+            document.getElementById('marginsValue').textContent = margins;
+            document.getElementById('erosionprob').value = erosionprob;
+            document.getElementById('erosionprobValue').textContent = erosionprob;
+            document.getElementById('brightness').value = brightness;
+            document.getElementById('brightnessValue').textContent = brightness;
+            document.getElementById('saturation').value = saturation;
+            document.getElementById('saturationValue').textContent = saturation;
+            generateArt(false); // Generate art with loaded settings
+        }
+        
+        function generateArt(save=true) {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const raw_gridSize = parseInt(document.getElementById('gridSize').value);
+            const raw_pointDensity = parseInt(document.getElementById('pointDensity').value); // / 100;
+            const raw_connectionsPerPoint = parseInt(document.getElementById('connections').value);
+            const raw_jitter = parseInt(document.getElementById('jitter').value); // / 100;
+            const raw_relativemargins = parseInt(document.getElementById('margins').value);
+            const raw_erosionprob = parseInt(document.getElementById('erosionprob').value); // / 100;
+            const raw_brightness = parseInt(document.getElementById('brightness').value); // / 100;
+            const raw_saturation = parseInt(document.getElementById('saturation').value); // / 100;
+
+            // Save all to session storage
+            if (save) {
+                // console.log('Saving settings to session storage...');
+                
+                sessionStorage.setItem('gridSize', raw_gridSize);
+                sessionStorage.setItem('pointDensity', raw_pointDensity);
+                sessionStorage.setItem('connections', raw_connectionsPerPoint);
+                sessionStorage.setItem('jitter', raw_jitter);
+                sessionStorage.setItem('margins', raw_relativemargins);
+                sessionStorage.setItem('erosionprob', raw_erosionprob);
+                console.log('Erosion probability:', raw_erosionprob);
+                sessionStorage.setItem('brightness', raw_brightness);
+                sessionStorage.setItem('saturation', raw_saturation);
+            }
+
+            const gridSize = raw_gridSize;
+            const pointDensity = raw_pointDensity / 100;
+            const connectionsPerPoint = raw_connectionsPerPoint;
+            const jitter = raw_jitter / 100;
+            const relativemargins = raw_relativemargins;
+            const brightness = raw_brightness / 100;
+            const saturation = raw_saturation / 100;
+
+            
+            // Create grid points
+            let gridPoints = [];
+            const absmargins = relativemargins/100 * Math.min(canvas.width, canvas.height);
+            const cellWidth = (canvas.width - absmargins*2.0) / (gridSize - 1);
+            const cellHeight = (canvas.height - absmargins*2.0) / (gridSize - 1);
+            
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    let x = i * cellWidth + absmargins;
+                    let y = j * cellHeight + absmargins;
+                    
+                    // Add jitter
+                    if (jitter > 0 && i > 0 && i < gridSize - 1 && j > 0 && j < gridSize - 1) {
+                        x += (Math.random() - 0.5) * cellWidth * jitter;
+                        y += (Math.random() - 0.5) * cellHeight * jitter;
+                    }
+                    
+                    gridPoints.push({ x, y });
+                }
+            }
+            
+            // Randomly select points
+            const numPoints = Math.floor(gridPoints.length * pointDensity);
+            let selectedPoints = [];
+            
+            // Always include corner points for hull
+            let corners = [
+                gridPoints[0], // top-left
+                gridPoints[gridSize - 1], // top-right
+                gridPoints[gridPoints.length - gridSize], // bottom-left
+                gridPoints[gridPoints.length - 1] // bottom-right
+            ];
+            
+            selectedPoints = [...corners];
+            
+            // Add random points
+            while (selectedPoints.length < numPoints) {
+                let randomPoint = gridPoints[Math.floor(Math.random() * gridPoints.length)];
+                if (!selectedPoints.includes(randomPoint)) {
+                    selectedPoints.push(randomPoint);
+                }
+            }
+            
+            // Create connections between points
+            let edges = [];
+            selectedPoints.forEach(point => {
+                const numConnections = Math.floor(Math.random() * (connectionsPerPoint - 2)) + 3;
+                const closest = findClosestPoints(point, selectedPoints, numConnections);
+                closest.forEach(neighbor => {
+                    edges.push([point, neighbor]);
+                });
+            });
+            
+            // Get convex hull and add hull edges
+            const hull = convexHull(selectedPoints);
+            for (let i = 0; i < hull.length; i++) {
+                const next = (i + 1) % hull.length;
+                edges.push([hull[i], hull[next]]);
+            }
+            
+            // Create polygons from triangulation
+            let polygons = triangulate(selectedPoints, edges);
+            
+            // Fill polygons with colors
+            allPolygons = polygons.map(points => {
+                const origColor = getRandomColor();
+                return {
+                    points: points,
+                    origcolor: origColor,
+                    displaycolor: applyColorAdjustments(origColor, brightness, saturation)
+                };
+            });
+            
+            // Draw all polygons
+            allPolygons.forEach(polygon => {
+                drawPolygon(polygon.points, polygon.displaycolor);
+            });
+        }
+
+        function reassignRandomColors() {
+            allPolygons.forEach(polygon => {
+                polygon.origcolor = getRandomColor();
+                polygon.displaycolor = applyColorAdjustments(polygon.origcolor, parseInt(document.getElementById('brightness').value) / 100, parseInt(document.getElementById('saturation').value) / 100);
+            });
+            repaintPolygons();
+        }
+        
+        function repaintPolygons() {
+            const brightness = parseInt(document.getElementById('brightness').value) / 100;
+            const saturation = parseInt(document.getElementById('saturation').value) / 100;
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            allPolygons.forEach(polygon => {
+                polygon.displaycolor = applyColorAdjustments(polygon.origcolor, brightness, saturation);
+                drawPolygon(polygon.points, polygon.displaycolor);
+            });
+        }
+
+        function erodeBorder() {
+            // console.log('Eroding polygons on the border...');
+            // Erode polygons that have at least one point on the border
+            // const erosionProbability = 0.1  ; // 10% chance to remove a polygon that has at least one point on the border
+            const erosionProbability = parseInt(document.getElementById('erosionprob').value) / 100; // Convert to percentage
+
+            // console.log('Erosion probability:', erosionProbability);
+            // console.log('Total polygons before erosion:', allPolygons.length);
+
+            let maxX, maxY, minX, minY;
+            // Calculate boundaries by looping through all polygons
+            allPolygons.forEach(polygon => {
+                polygon.points.forEach(p => {
+                    if (maxX === undefined || p.x > maxX) maxX = p.x;
+                    if (maxY === undefined || p.y > maxY) maxY = p.y;
+                    if (minX === undefined || p.x < minX) minX = p.x;
+                    if (minY === undefined || p.y < minY) minY = p.y;
+                });
+            });
+
+
+            allPolygons = allPolygons.filter(polygon => {
+                // const hasBorderPoint = polygon.points.some(p => p.x <= 0 || p.x >= canvas.width || p.y <= 0 || p.y >= canvas.height); // Not working because of margins
+                const hasBorderPoint = polygon.points.some(p => 
+                    p.x <= minX + 1 || p.x >= maxX - 1 || p.y <= minY + 1 || p.y >= maxY - 1
+                );
+
+                return !hasBorderPoint || Math.random() > erosionProbability;
+            });
+            console.log('Total polygons after erosion:', allPolygons.length);
+
+            repaintPolygons();
+        }
+            
+        
+        function generateNew() {
+            generateArt();
+        }
+        
+        function generateRandomName() {
+            const adjectives = [
+                'geometric', 'abstract', 'prismatic', 'crystalline', 'angular', 'faceted',
+                'tessellated', 'triangular', 'polygonal', 'structured', 'connected', 'networked'
+            ];
+            const nouns = [
+                'patterns', 'fragments', 'shards', 'crystals', 'mesh', 'grid',
+                'network', 'composition', 'structure', 'formation', 'arrangement', 'design'
+            ];
+            
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            
+            return `${adj}-${noun}`;
+        }
+
+        function saveSVG() {
+            const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                <rect width="100%" height="100%" fill="#000"/>` +
+                allPolygons.map(polygon => {
+                    const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
+                    return `<polygon points="${points}" fill="${polygon.displaycolor}" stroke="#000" stroke-width="1"/>`;
+                }).join('') +
+                `</svg>`;
+            
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = generateRandomName() + '.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Event listeners
+        const colorSensitiveControls = ['brightness', 'saturation'];
+        const generativeControls = ['gridSize', 'pointDensity', 'connections', 'jitter', 'margins'];
+        const otherControls = ['erosionprob'];
+        
+        colorSensitiveControls.forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                document.getElementById(id + 'Value').textContent = this.value;
+                repaintPolygons();
+            });
+        });
+        
+        generativeControls.forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                document.getElementById(id + 'Value').textContent = this.value;
+                generateArt();
+            });
+        });
+
+        otherControls.forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                document.getElementById(id + 'Value').textContent = this.value;
+            });
+        });
+        
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener('dblclick', function() {
+                this.value = this.defaultValue;
+                document.getElementById(this.id + 'Value').textContent = this.value;
+                if (colorSensitiveControls.includes(this.id)) {
+                    repaintPolygons();
+                } else {
+                    generateArt();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentScheme = this.dataset.scheme;
+                sessionStorage.setItem('colorScheme', currentScheme);
+                // generateArt();
+                reassignRandomColors();
+            });
+        });
+        
+        // Initial generation
+        // generateArt(save);
+    </script>
+</body>
+</html>

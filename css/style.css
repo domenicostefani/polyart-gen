@@ -163,7 +163,7 @@ body {
     align-items: flex-start;
     flex-direction: column;
     margin: 0 auto;
-    width: min(100%, 800px);
+    width: min(100%, 1000px);
 }
 
 .horver-flexbox {
@@ -172,6 +172,12 @@ body {
     align-items: center;
     justify-content: center;
     width: 100%;
+}
+
+.pages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .canvas-container {
@@ -195,7 +201,7 @@ canvas {
     background: #2a2a2a;
     padding: 20px;
     border-radius: 8px;
-    min-width: 250px;
+    min-width: 350px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
