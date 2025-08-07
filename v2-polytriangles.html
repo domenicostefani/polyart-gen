@@ -165,12 +165,13 @@
                 </div>
 
                 <h3>Color Schemes</h3>
-                <div class="color-preset">
+                <div id="color-preset" class="color-preset">
                     <div class="color-btn active" data-scheme="vibrant" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);"></div>
-                    <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);"></div>
+                    <!-- <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);"></div>
                     <div class="color-btn" data-scheme="warm" style="background: linear-gradient(45deg, #ffeaa7, #fab1a0, #e17055, #fd79a8);"></div>
+                    <div class="color-btn" data-scheme="cool" style="background: linear-gradient(45deg, rgb(102, 126, 234), rgb(118, 75, 162), rgb(240, 147, 251), rgb(245, 87, 108), rgb(72, 52, 212), rgb(104, 109, 224), rgb(48, 51, 107));"></div>
                     <div class="color-btn" data-scheme="nature" style="background: linear-gradient(45deg, #00b894, #00cec9, #6c5ce7, #a29bfe);"></div>
-                    <div class="color-btn" data-scheme="sunset" style="background: linear-gradient(45deg, #fd79a8, #fdcb6e, #e84393, #6c5ce7);"></div>
+                    <div class="color-btn" data-scheme="sunset" style="background: linear-gradient(45deg, #fd79a8, #fdcb6e, #e84393, #6c5ce7);"></div> -->
                 </div>
             
                 <div class="control-group">
@@ -224,6 +225,13 @@
                         <button onclick="erodeBorder()" style="background-color: #e17055;">Erode Border</button>
                     </div>
                 </div>
+
+                <!-- Toggle for Gradient -->
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="doGradient" onclick="dogradentchange()">
+                        Apply Gradient to Polygons
+                    </label>
             
                 <div class="control-group">
                     <label>Color Saturation</label>
@@ -256,8 +264,58 @@
             cool: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4834d4', '#686de0', '#30336b'],
             warm: ['#ffeaa7', '#fab1a0', '#e17055', '#fd79a8', '#fdcb6e', '#e84393', '#fd79a8'],
             nature: ['#00b894', '#00cec9', '#6c5ce7', '#a29bfe', '#55a3ff', '#26de81', '#2bcbba'],
-            sunset: ['#fd79a8', '#fdcb6e', '#e84393', '#6c5ce7', '#74b9ff', '#0984e3', '#a29bfe']
+            sunset: ['#fd79a8', '#fdcb6e', '#e84393', '#6c5ce7', '#74b9ff', '#0984e3', '#a29bfe'],
+            space: ['#2d3436', '#636e72', '#dfe6e9', '#b2bec3', '#00cec9', '#0984e3', '#74b9ff'],
+        // New schemes
+            neon: ['#ff073a', '#39ff14', '#00ffff', '#ff1493', '#ffff00', '#ff6600', '#bf00ff'],
+            candy: ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e6baff', '#ffb3e6'],
+            ocean: ['#001f3f', '#0074d9', '#7fdbff', '#39cccc', '#2ecc71', '#01ff70', '#85e085'],
+            
+            // High contrast schemes
+            electric: ['#000000', '#ffff00', '#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#ffffff'],
+            cyberpunk: ['#0a0a0a', '#ff0080', '#00ff41', '#ffff00', '#8000ff', '#ff4000', '#ffffff'],
+            retro: ['#1a1a1a', '#ff6b35', '#f7931e', '#ffd23f', '#06ffa5', '#3b5998', '#ffffff']
         };
+
+        function spawnColorButtons() {
+            const colorPresetContainer = document.getElementById('color-preset');
+            console.log('Spawning color buttons with current scheme:', currentScheme);
+            colorPresetContainer.innerHTML = ''; // Clear existing buttons
+            
+            Object.keys(colorSchemes).forEach(scheme => {
+                const button = document.createElement('div');
+                button.className = 'color-btn';
+                button.style.background = `linear-gradient(45deg, ${colorSchemes[scheme].join(', ')})`;
+                button.dataset.scheme = scheme;
+                button.onclick = function() {
+                    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentScheme = this.dataset.scheme;
+                    sessionStorage.setItem('colorScheme', currentScheme);
+                    // generateArt();
+                    reassignRandomColors();
+                };
+                
+                if (scheme === currentScheme) {
+                    button.classList.add('active');
+                }
+                
+                colorPresetContainer.appendChild(button);
+            });
+
+
+
+        //     document.querySelectorAll('.color-btn').forEach(btn => {
+        //     btn.addEventListener('click', function() {
+        //         document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        //         this.classList.add('active');
+        //         currentScheme = this.dataset.scheme;
+        //         sessionStorage.setItem('colorScheme', currentScheme);
+        //         // generateArt();
+        //         reassignRandomColors();
+        //     });
+        // });
+        }
         
         function getRandomColor() {
             const scheme = colorSchemes[currentScheme];
@@ -410,8 +468,36 @@
             }
             
             ctx.closePath();
-            ctx.fillStyle = fillColor;
-            ctx.fill();
+            // ctx.fillStyle = fillColor;
+            // ctx.fill();
+
+            // Do gradient to black with random angle
+            // const randomStartPointX = Math.random() * canvas.width;
+            // const randomStartPointY = Math.random() * canvas.height;
+            // const gradient = ctx.createLinearGradient(randomStartPointX, randomStartPointY, canvas.width, canvas.height);
+            // gradient.addColorStop(0, fillColor);
+            // gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            // ctx.fillStyle = gradient;
+            // ctx.fill();
+            const doGradient = sessionStorage.getItem('doGradient') === 'true';
+            console.log('Do gradient:', doGradient);
+            if (doGradient) {
+                randomStartPoint = points[Math.floor(Math.random() * points.length)];
+                const gradient = ctx.createRadialGradient(randomStartPoint.x, randomStartPoint.y, 0, randomStartPoint.x, randomStartPoint.y, Math.max(canvas.width, canvas.height));
+                gradient.addColorStop(0, fillColor);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 255)');
+                // gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            } else {
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+            }
+
+
+            
+
+
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -419,6 +505,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             loadSliderValues();
+            spawnColorButtons();
         });
 
         function loadSliderValues() {
@@ -429,6 +516,7 @@
             const jitter = sessionStorage.getItem('jitter'); // || document.getElementById('jitter').value;
             const margins = sessionStorage.getItem('margins'); // || document.getElementById('margins').value;
             const erosionprob = sessionStorage.getItem('erosionprob'); // || document.getElementById('erosionprob').value;
+            const doGradient = sessionStorage.getItem('doGradient') === 'true'; // || document.getElementById('doGradient
             const brightness = sessionStorage.getItem('brightness'); // || document.getElementById('brightness').value;
             const saturation = sessionStorage.getItem('saturation'); // || document.getElementById('saturation').value;
 
@@ -448,6 +536,7 @@
             document.getElementById('marginsValue').textContent = margins;
             document.getElementById('erosionprob').value = erosionprob;
             document.getElementById('erosionprobValue').textContent = erosionprob;
+            document.getElementById('doGradient').checked = doGradient;
             document.getElementById('brightness').value = brightness;
             document.getElementById('brightnessValue').textContent = brightness;
             document.getElementById('saturation').value = saturation;
@@ -465,6 +554,7 @@
             const raw_jitter = parseInt(document.getElementById('jitter').value); // / 100;
             const raw_relativemargins = parseInt(document.getElementById('margins').value);
             const raw_erosionprob = parseInt(document.getElementById('erosionprob').value); // / 100;
+            const raw_doGradient = document.getElementById('doGradient').checked;
             const raw_brightness = parseInt(document.getElementById('brightness').value); // / 100;
             const raw_saturation = parseInt(document.getElementById('saturation').value); // / 100;
 
@@ -478,6 +568,7 @@
                 sessionStorage.setItem('jitter', raw_jitter);
                 sessionStorage.setItem('margins', raw_relativemargins);
                 sessionStorage.setItem('erosionprob', raw_erosionprob);
+                sessionStorage.setItem('doGradient', raw_doGradient);
                 console.log('Erosion probability:', raw_erosionprob);
                 sessionStorage.setItem('brightness', raw_brightness);
                 sessionStorage.setItem('saturation', raw_saturation);
@@ -488,8 +579,10 @@
             const connectionsPerPoint = raw_connectionsPerPoint;
             const jitter = raw_jitter / 100;
             const relativemargins = raw_relativemargins;
+            const doGradient = raw_doGradient;
             const brightness = raw_brightness / 100;
             const saturation = raw_saturation / 100;
+            
 
             
             // Create grid points
@@ -518,14 +611,14 @@
             let selectedPoints = [];
             
             // Always include corner points for hull
-            let corners = [
-                gridPoints[0], // top-left
-                gridPoints[gridSize - 1], // top-right
-                gridPoints[gridPoints.length - gridSize], // bottom-left
-                gridPoints[gridPoints.length - 1] // bottom-right
-            ];
+            // let corners = [
+            //     gridPoints[0], // top-left
+            //     gridPoints[gridSize - 1], // top-right
+            //     gridPoints[gridPoints.length - gridSize], // bottom-left
+            //     gridPoints[gridPoints.length - 1] // bottom-right
+            // ];
             
-            selectedPoints = [...corners];
+            // selectedPoints = [...corners];
             
             // Add random points
             while (selectedPoints.length < numPoints) {
@@ -666,6 +759,19 @@
         }
         
         // Event listeners
+
+        function dogradentchange() {
+            const doGradient = document.getElementById('doGradient').checked;
+            sessionStorage.setItem('doGradient', doGradient);
+            console.log('Do gradient changed:', doGradient);
+            if (doGradient) {
+                console.log('Applying gradient to polygons');
+            } else {
+                console.log('Removing gradient from polygons');
+            }
+            repaintPolygons();
+        }   
+
         const colorSensitiveControls = ['brightness', 'saturation'];
         const generativeControls = ['gridSize', 'pointDensity', 'connections', 'jitter', 'margins'];
         const otherControls = ['erosionprob'];
@@ -702,16 +808,7 @@
             });
         });
         
-        document.querySelectorAll('.color-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentScheme = this.dataset.scheme;
-                sessionStorage.setItem('colorScheme', currentScheme);
-                // generateArt();
-                reassignRandomColors();
-            });
-        });
+        
         
         // Initial generation
         // generateArt(save);
