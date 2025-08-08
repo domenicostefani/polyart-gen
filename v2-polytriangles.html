@@ -161,7 +161,7 @@
 
                 <div class="control-group" style="margin-top: 20px;">
                     <button onclick="generateNew()" style="background-color: #667eea;">Generate New</button>
-                    <button onclick="saveSVG()" style="background-color: #00b894;">Save as SVG</button>
+                    <button onclick="thePolygons.saveSVG()" style="background-color: #00b894;">Save as SVG</button>
                 </div>
 
                 <h3>Color Schemes</h3>
@@ -222,7 +222,7 @@
                     <div class="slider-container">
                         <input type="range" id="erosionprob" min="0" max="100" value="5">
                         <span><span class="value-display" id="erosionprobValue">5</span>%</span>
-                        <button onclick="erodeBorder()" style="background-color: #e17055;">Erode Border</button>
+                        <button onclick="thePolygons.erodeBorder()" style="background-color: #e17055;">Erode Border</button>
                     </div>
                 </div>
 
@@ -257,7 +257,172 @@
         const ctx = canvas.getContext('2d');
         // let currentScheme = 'vibrant';
         let currentScheme = sessionStorage.getItem('colorScheme') || 'vibrant';
-        let allPolygons = [];
+
+        
+        class SVGpolyList {
+            constructor() {
+                this.gradient_instructions = [];
+                this.polygon_instructions = [];
+            }
+            addGradient(gradientString) {
+                this.gradient_instructions.push(gradientString);
+            }
+            addPolygon(polygonString) {
+                this.polygon_instructions.push(polygonString);
+            }
+
+            clear() {
+                this.gradient_instructions = [];
+                this.polygon_instructions = [];
+            }
+
+            toSVG() {
+                let reversedGradients = this.gradient_instructions.reverse();
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                    <defs>
+                        ${this.gradient_instructions.join('')}
+                    </defs>
+                    <rect width="100%" height="100%" fill="#000"/>
+                    ${this.polygon_instructions.join('')}
+                </svg>`;
+            }
+        }
+
+
+        class PolygonList {
+            constructor() {
+                this.polygons = [];
+                this.svgPolyList = new SVGpolyList();
+            }
+            
+            add(polygon) {
+                this.polygons.push(polygon);
+            }
+            
+            clear() {
+                this.polygons = [];
+            }
+            
+            getAll() {
+                return this.polygons;
+            }
+
+            reassignRandomColors() {
+                this.polygons.forEach(polygon => {
+                    polygon.origcolor = getRandomColor();
+                    polygon.displaycolor = applyColorAdjustments(polygon.origcolor, parseInt(document.getElementById('brightness').value) / 100, parseInt(document.getElementById('saturation').value) / 100);
+                });
+                this.renderPolygons();
+            }
+
+            renderPolygons() {
+                const brightness = parseInt(document.getElementById('brightness').value) / 100;
+                const saturation = parseInt(document.getElementById('saturation').value) / 100;
+                
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                this.polygons.sort((a, b) => a.points.length - b.points.length); // Sort by number of points
+                
+
+                let polycounter = 0;
+                this.polygons.forEach(polygon => {
+                    polygon.drawOrder = polycounter++;
+                    polygon.displaycolor = applyColorAdjustments(polygon.origcolor, brightness, saturation);
+                    drawPolygon(polygon.points, polygon.displaycolor, polygon);
+                });
+            }
+
+            setDoGradient(doGradient) {
+                sessionStorage.setItem('doGradient', doGradient);
+                this.doGradient = doGradient;
+            }
+
+            
+            erodeBorder() {
+                const erosionProbability = parseInt(document.getElementById('erosionprob').value) / 100; // Convert to percentage
+
+                let maxX, maxY, minX, minY;
+                // Calculate boundaries by looping through all polygons
+                this.polygons.forEach(polygon => {
+                    polygon.points.forEach(p => {
+                        if (maxX === undefined || p.x > maxX) maxX = p.x;
+                        if (maxY === undefined || p.y > maxY) maxY = p.y;
+                        if (minX === undefined || p.x < minX) minX = p.x;
+                        if (minY === undefined || p.y < minY) minY = p.y;
+                    });
+                });
+
+
+                this.polygons = this.polygons.filter(polygon => {
+                    // const hasBorderPoint = polygon.points.some(p => p.x <= 0 || p.x >= canvas.width || p.y <= 0 || p.y >= canvas.height); // Not working because of margins
+                    const hasBorderPoint = polygon.points.some(p => 
+                        p.x <= minX + 1 || p.x >= maxX - 1 || p.y <= minY + 1 || p.y >= maxY - 1
+                    );
+
+                    return !hasBorderPoint || Math.random() > erosionProbability;
+                });
+                console.log('Total polygons after erosion:', this.polygons.length);
+
+                this.renderPolygons();
+            }
+
+            saveSVG() {
+                let svgContent = '';
+
+                // sort polygons by drawOrder
+                this.polygons.sort((a, b) => a.drawOrder - b.drawOrder);
+
+                if (this.doGradient) {
+                    // Generate gradient definitions
+                    const gradientDefs = this.polygons.map(polygon => {
+                        const gradientId = `grad-${generateRandomName()}`;
+                        const gradientStart = polygon.gradientStartPoint;
+                        const gradientEnd = polygon.gradientEndPoint;
+                        
+                        polygon.gradientId = gradientId; // Store the ID for later use
+                        
+                        return `<linearGradient id="${gradientId}" x1="${gradientStart.x}" y1="${gradientStart.y}" 
+                            x2="${gradientEnd.x}" y2="${gradientEnd.y}" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="${polygon.displaycolor}"/>
+                            <stop offset="100%" stop-color="#000000"/>
+                        </linearGradient>`;
+                    }).join('');
+
+                    // Generate polygon elements
+                    const polygonElements = this.polygons.map(polygon => {
+                        const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
+                        return `<polygon points="${points}" fill="url(#${polygon.gradientId})" stroke="#000" stroke-width="1"/>`;
+                    }).join('');
+
+                    svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                        <defs>
+                            ${gradientDefs}
+                        </defs>
+                        <rect width="100%" height="100%" fill="#000"/>
+                        ${polygonElements}
+                    </svg>`;
+                } else {
+                    svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                        <rect width="100%" height="100%" fill="#000"/>` +
+                        this.polygons.map(polygon => {
+                            const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
+                            return `<polygon points="${points}" fill="${polygon.displaycolor}" stroke="#000" stroke-width="1"/>`;
+                        }).join('') +
+                        `</svg>`;
+                }
+                
+                const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = generateRandomName() + '.svg';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        let thePolygons = new PolygonList();
         
         const colorSchemes = {
             vibrant: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'],
@@ -468,7 +633,7 @@
             }
             
             ctx.closePath();
-            const doGradient = sessionStorage.getItem('doGradient') === 'true';
+            const doGradient = thePolygons.doGradient;
             if (doGradient) {
                 startPoint = polygon.gradientStartPoint;
                 endPoint = polygon.gradientEndPoint;
@@ -635,7 +800,7 @@
             let polygons = triangulate(selectedPoints, edges);
             
             // Fill polygons with colors and prepare gradient to use if doGradient is true
-            allPolygons = polygons.map(points => {
+            let polys = polygons.map(points => {
                 const origColor = getRandomColor();
                 return {
                     points: points,
@@ -645,68 +810,18 @@
                     gradientEndPoint : points[Math.floor(Math.random() * points.length)]
                 };
             });
-            
-            renderPolygons();
-        }
 
-        function reassignRandomColors() {
-            allPolygons.forEach(polygon => {
-                polygon.origcolor = getRandomColor();
-                polygon.displaycolor = applyColorAdjustments(polygon.origcolor, parseInt(document.getElementById('brightness').value) / 100, parseInt(document.getElementById('saturation').value) / 100);
-            });
-            renderPolygons();
-        }
-        
-        function renderPolygons() {
-            const brightness = parseInt(document.getElementById('brightness').value) / 100;
-            const saturation = parseInt(document.getElementById('saturation').value) / 100;
-            
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            allPolygons.sort((a, b) => a.points.length - b.points.length); // Sort by number of points
-            
-            let polycounter = 0;
-            allPolygons.forEach(polygon => {
-                polygon.drawOrder = polycounter++;
-                polygon.displaycolor = applyColorAdjustments(polygon.origcolor, brightness, saturation);
-                drawPolygon(polygon.points, polygon.displaycolor, polygon);
-            });
-        }
-
-        function erodeBorder() {
-            // console.log('Eroding polygons on the border...');
-            // Erode polygons that have at least one point on the border
-            // const erosionProbability = 0.1  ; // 10% chance to remove a polygon that has at least one point on the border
-            const erosionProbability = parseInt(document.getElementById('erosionprob').value) / 100; // Convert to percentage
-
-            // console.log('Erosion probability:', erosionProbability);
-            // console.log('Total polygons before erosion:', allPolygons.length);
-
-            let maxX, maxY, minX, minY;
-            // Calculate boundaries by looping through all polygons
-            allPolygons.forEach(polygon => {
-                polygon.points.forEach(p => {
-                    if (maxX === undefined || p.x > maxX) maxX = p.x;
-                    if (maxY === undefined || p.y > maxY) maxY = p.y;
-                    if (minX === undefined || p.x < minX) minX = p.x;
-                    if (minY === undefined || p.y < minY) minY = p.y;
-                });
+            thePolygons = new PolygonList();
+            thePolygons.setDoGradient(doGradient);
+            polys.forEach(polygon => {
+                // Assign a random draw order
+                polygon.drawOrder = Math.floor(Math.random() * 1000);
+                thePolygons.add(polygon);
             });
 
-
-            allPolygons = allPolygons.filter(polygon => {
-                // const hasBorderPoint = polygon.points.some(p => p.x <= 0 || p.x >= canvas.width || p.y <= 0 || p.y >= canvas.height); // Not working because of margins
-                const hasBorderPoint = polygon.points.some(p => 
-                    p.x <= minX + 1 || p.x >= maxX - 1 || p.y <= minY + 1 || p.y >= maxY - 1
-                );
-
-                return !hasBorderPoint || Math.random() > erosionProbability;
-            });
-            console.log('Total polygons after erosion:', allPolygons.length);
-
-            renderPolygons();
+            thePolygons.renderPolygons();
         }
+
             
         
         function generateNew() {
@@ -729,73 +844,21 @@
             return `${adj}-${noun}`;
         }
 
-        function saveSVG() {
-            let doGradient = sessionStorage.getItem('doGradient') === 'true';
-            let svgContent = '';
-
-            // sort polygons by drawOrder
-            allPolygons.sort((a, b) => a.drawOrder - b.drawOrder);
-
-            if (doGradient) {
-                // Generate gradient definitions
-                const gradientDefs = allPolygons.map(polygon => {
-                    const gradientId = `grad-${generateRandomName()}`;
-                    const gradientStart = polygon.gradientStartPoint;
-                    const gradientEnd = polygon.gradientEndPoint;
-                    
-                    polygon.gradientId = gradientId; // Store the ID for later use
-                    
-                    return `<linearGradient id="${gradientId}" x1="${gradientStart.x}" y1="${gradientStart.y}" 
-                        x2="${gradientEnd.x}" y2="${gradientEnd.y}" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="${polygon.displaycolor}"/>
-                        <stop offset="100%" stop-color="#000000"/>
-                    </linearGradient>`;
-                }).join('');
-
-                // Generate polygon elements
-                const polygonElements = allPolygons.map(polygon => {
-                    const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
-                    return `<polygon points="${points}" fill="url(#${polygon.gradientId})" stroke="#000" stroke-width="1"/>`;
-                }).join('');
-
-                svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
-                    <defs>
-                        ${gradientDefs}
-                    </defs>
-                    <rect width="100%" height="100%" fill="#000"/>
-                    ${polygonElements}
-                </svg>`;
-            } else {
-                svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
-                    <rect width="100%" height="100%" fill="#000"/>` +
-                    allPolygons.map(polygon => {
-                        const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
-                        return `<polygon points="${points}" fill="${polygon.displaycolor}" stroke="#000" stroke-width="1"/>`;
-                    }).join('') +
-                    `</svg>`;
-            }
-            
-            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = generateRandomName() + '.svg';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+        
         
         // Event listeners
 
         function dogradentchange() {
             const doGradient = document.getElementById('doGradient').checked;
-            sessionStorage.setItem('doGradient', doGradient);
-            console.log('Do gradient changed:', doGradient);
-            if (doGradient) {
-                console.log('Applying gradient to polygons');
-            } else {
-                console.log('Removing gradient from polygons');
-            }
-            renderPolygons();
+            // sessionStorage.setItem('doGradient', doGradient);
+            // console.log('Do gradient changed:', doGradient);
+            // if (doGradient) {
+            //     console.log('Applying gradient to polygons');
+            // } else {
+            //     console.log('Removing gradient from polygons');
+            // }
+            thePolygons.setDoGradient(doGradient);
+            thePolygons.renderPolygons();
         }   
 
         const colorSensitiveControls = ['brightness', 'saturation'];
@@ -805,7 +868,7 @@
         colorSensitiveControls.forEach(id => {
             document.getElementById(id).addEventListener('input', function() {
                 document.getElementById(id + 'Value').textContent = this.value;
-                renderPolygons();
+                thePolygons.renderPolygons();
             });
         });
         
@@ -827,7 +890,7 @@
                 this.value = this.defaultValue;
                 document.getElementById(this.id + 'Value').textContent = this.value;
                 if (colorSensitiveControls.includes(this.id)) {
-                    renderPolygons();
+                    thePolygons.renderPolygons();
                 } else {
                     generateArt();
                 }
