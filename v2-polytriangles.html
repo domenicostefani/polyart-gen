@@ -457,7 +457,7 @@
             }
         }
         
-        function drawPolygon(points, fillColor) {
+        function drawPolygon(points, fillColor, polygon) {
             if (points.length < 3) return;
             
             ctx.beginPath();
@@ -468,34 +468,20 @@
             }
             
             ctx.closePath();
-            // ctx.fillStyle = fillColor;
-            // ctx.fill();
-
-            // Do gradient to black with random angle
-            // const randomStartPointX = Math.random() * canvas.width;
-            // const randomStartPointY = Math.random() * canvas.height;
-            // const gradient = ctx.createLinearGradient(randomStartPointX, randomStartPointY, canvas.width, canvas.height);
-            // gradient.addColorStop(0, fillColor);
-            // gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            // ctx.fillStyle = gradient;
-            // ctx.fill();
             const doGradient = sessionStorage.getItem('doGradient') === 'true';
-            console.log('Do gradient:', doGradient);
             if (doGradient) {
-                randomStartPoint = points[Math.floor(Math.random() * points.length)];
-                const gradient = ctx.createRadialGradient(randomStartPoint.x, randomStartPoint.y, 0, randomStartPoint.x, randomStartPoint.y, Math.max(canvas.width, canvas.height));
+                startPoint = polygon.gradientStartPoint;
+                endPoint = polygon.gradientEndPoint;
+                const gradient = ctx.createLinearGradient(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
                 gradient.addColorStop(0, fillColor);
-                gradient.addColorStop(1, 'rgba(0, 0, 0, 255)');
-                // gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 255)'); // Black at the end
+
                 ctx.fillStyle = gradient;
                 ctx.fill();
             } else {
                 ctx.fillStyle = fillColor;
                 ctx.fill();
             }
-
-
-            
 
 
             ctx.strokeStyle = '#000';
@@ -648,20 +634,19 @@
             // Create polygons from triangulation
             let polygons = triangulate(selectedPoints, edges);
             
-            // Fill polygons with colors
+            // Fill polygons with colors and prepare gradient to use if doGradient is true
             allPolygons = polygons.map(points => {
                 const origColor = getRandomColor();
                 return {
                     points: points,
                     origcolor: origColor,
-                    displaycolor: applyColorAdjustments(origColor, brightness, saturation)
+                    displaycolor: applyColorAdjustments(origColor, brightness, saturation),
+                    gradientStartPoint : points[Math.floor(Math.random() * points.length)],
+                    gradientEndPoint : points[Math.floor(Math.random() * points.length)]
                 };
             });
             
-            // Draw all polygons
-            allPolygons.forEach(polygon => {
-                drawPolygon(polygon.points, polygon.displaycolor);
-            });
+            renderPolygons();
         }
 
         function reassignRandomColors() {
@@ -669,19 +654,23 @@
                 polygon.origcolor = getRandomColor();
                 polygon.displaycolor = applyColorAdjustments(polygon.origcolor, parseInt(document.getElementById('brightness').value) / 100, parseInt(document.getElementById('saturation').value) / 100);
             });
-            repaintPolygons();
+            renderPolygons();
         }
         
-        function repaintPolygons() {
+        function renderPolygons() {
             const brightness = parseInt(document.getElementById('brightness').value) / 100;
             const saturation = parseInt(document.getElementById('saturation').value) / 100;
             
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            allPolygons.sort((a, b) => a.points.length - b.points.length); // Sort by number of points
             
+            let polycounter = 0;
             allPolygons.forEach(polygon => {
+                polygon.drawOrder = polycounter++;
                 polygon.displaycolor = applyColorAdjustments(polygon.origcolor, brightness, saturation);
-                drawPolygon(polygon.points, polygon.displaycolor);
+                drawPolygon(polygon.points, polygon.displaycolor, polygon);
             });
         }
 
@@ -716,7 +705,7 @@
             });
             console.log('Total polygons after erosion:', allPolygons.length);
 
-            repaintPolygons();
+            renderPolygons();
         }
             
         
@@ -741,13 +730,50 @@
         }
 
         function saveSVG() {
-            const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
-                <rect width="100%" height="100%" fill="#000"/>` +
-                allPolygons.map(polygon => {
+            let doGradient = sessionStorage.getItem('doGradient') === 'true';
+            let svgContent = '';
+
+            // sort polygons by drawOrder
+            allPolygons.sort((a, b) => a.drawOrder - b.drawOrder);
+
+            if (doGradient) {
+                // Generate gradient definitions
+                const gradientDefs = allPolygons.map(polygon => {
+                    const gradientId = `grad-${generateRandomName()}`;
+                    const gradientStart = polygon.gradientStartPoint;
+                    const gradientEnd = polygon.gradientEndPoint;
+                    
+                    polygon.gradientId = gradientId; // Store the ID for later use
+                    
+                    return `<linearGradient id="${gradientId}" x1="${gradientStart.x}" y1="${gradientStart.y}" 
+                        x2="${gradientEnd.x}" y2="${gradientEnd.y}" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="${polygon.displaycolor}"/>
+                        <stop offset="100%" stop-color="#000000"/>
+                    </linearGradient>`;
+                }).join('');
+
+                // Generate polygon elements
+                const polygonElements = allPolygons.map(polygon => {
                     const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
-                    return `<polygon points="${points}" fill="${polygon.displaycolor}" stroke="#000" stroke-width="1"/>`;
-                }).join('') +
-                `</svg>`;
+                    return `<polygon points="${points}" fill="url(#${polygon.gradientId})" stroke="#000" stroke-width="1"/>`;
+                }).join('');
+
+                svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                    <defs>
+                        ${gradientDefs}
+                    </defs>
+                    <rect width="100%" height="100%" fill="#000"/>
+                    ${polygonElements}
+                </svg>`;
+            } else {
+                svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                    <rect width="100%" height="100%" fill="#000"/>` +
+                    allPolygons.map(polygon => {
+                        const points = polygon.points.map(p => `${p.x},${p.y}`).join(' ');
+                        return `<polygon points="${points}" fill="${polygon.displaycolor}" stroke="#000" stroke-width="1"/>`;
+                    }).join('') +
+                    `</svg>`;
+            }
             
             const blob = new Blob([svgContent], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
@@ -769,7 +795,7 @@
             } else {
                 console.log('Removing gradient from polygons');
             }
-            repaintPolygons();
+            renderPolygons();
         }   
 
         const colorSensitiveControls = ['brightness', 'saturation'];
@@ -779,7 +805,7 @@
         colorSensitiveControls.forEach(id => {
             document.getElementById(id).addEventListener('input', function() {
                 document.getElementById(id + 'Value').textContent = this.value;
-                repaintPolygons();
+                renderPolygons();
             });
         });
         
@@ -801,7 +827,7 @@
                 this.value = this.defaultValue;
                 document.getElementById(this.id + 'Value').textContent = this.value;
                 if (colorSensitiveControls.includes(this.id)) {
-                    repaintPolygons();
+                    renderPolygons();
                 } else {
                     generateArt();
                 }
